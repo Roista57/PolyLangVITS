@@ -19,7 +19,7 @@ from shutil import rmtree
 from scipy.io import wavfile
 from langdetect import detect
 import re
-
+from tqdm import tqdm
 
 def preprocessing_code(arg3):
     def convert_mp3_to_wav(root_dir):
@@ -283,7 +283,7 @@ def third_code(arg1, arg2):
                         text = ' '.join([s.text for s in segments]).strip()
                         
                         modified_path = "../datasets" + f"{wav_folder[1:]}/{wav_file}".replace("\\", "/")
-                        print(f"{modified_path}|{speaker_id}|[{lang_tag}]{text}[{lang_tag}]")
+                        #print(f"{modified_path}|{speaker_id}|[{lang_tag}]{text}[{lang_tag}]")
                         f.writelines(f"{modified_path}|{speaker_id}|[{lang_tag}]{text}[{lang_tag}]\n")
                         with open(os.path.join(top_folder, f"{arg2}_train.txt"), "a", encoding='utf-8') as all_transcript_file:
                             all_transcript_file.writelines(f"{modified_path}|{speaker_id}|[{lang_tag}]{text}[{lang_tag}]\n")
@@ -291,21 +291,28 @@ def third_code(arg1, arg2):
     def main():
         top_folder = "./"
         speaker_id = 0
-
-        for folder in sorted(os.listdir(top_folder)):
+    
+        for folder in tqdm(sorted(os.listdir(top_folder)), desc='Processing folders'):
             folder_path = os.path.join(top_folder, folder)
             if os.path.isdir(folder_path):
-                lang_tag = re.search(r'\[(.*?)\]', folder).group(1)  # Extract language tag from folder name using regex
+                match = re.search(r'\[(.*?)\]', folder)  # Extract language tag from folder name using regex
+                
+                # Check if regular expression didn't match
+                if match is None:
+                    print(f"Skipping {folder_path}, does not match regex")
+                    continue
+                    
+                lang_tag = match.group(1)  
                 wav_folder = os.path.join(folder_path, "wavs")
                 transcript_file = os.path.join(folder_path, "transcript.txt")
                 process_wav_files(speaker_id, wav_folder, transcript_file, top_folder, lang_tag)
                 speaker_id += 1
-        
+                
         input_file = f'./{arg2}_train.txt'
         output_file = f'./{arg2}_val.txt'
-
+    
         select_random_lines(input_file, output_file)
-
+        
     def select_random_lines(input_file, output_file):
         with open(input_file, 'r', encoding='utf-8') as file:
             all_lines = file.readlines()
